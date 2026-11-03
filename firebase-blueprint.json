@@ -1,0 +1,162 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User profile with display name, email, and security settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth user ID" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "pinLockEnabled": { "type": "boolean" },
+        "pinHash": { "type": "string", "maxLength": 128 },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "documents": {
+      "title": "Locker Document",
+      "description": "Secure document metadata and verification details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Aadhaar",
+            "PAN",
+            "Passport",
+            "Driving Licence",
+            "Voter ID",
+            "Ration Card",
+            "Birth Certificate",
+            "Marriage Certificate",
+            "Education",
+            "Insurance",
+            "Bank",
+            "Property",
+            "Vehicle",
+            "Other"
+          ]
+        },
+        "familyMemberId": { "type": "string", "maxLength": 128 },
+        "familyMemberName": { "type": "string", "maxLength": 100 },
+        "documentNumber": { "type": "string", "maxLength": 100 },
+        "maskedNumber": { "type": "string", "maxLength": 100 },
+        "fileType": { "type": "string", "enum": ["pdf", "jpg", "jpeg", "png", "webp"] },
+        "fileUrl": { "type": "string" },
+        "fileName": { "type": "string", "maxLength": 255 },
+        "fileSize": { "type": "number" },
+        "uploadDate": { "type": "string", "maxLength": 30 },
+        "dob": { "type": "string", "maxLength": 30 },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other", "Unspecified"] },
+        "address": { "type": "string", "maxLength": 500 },
+        "issueDate": { "type": "string", "maxLength": 30 },
+        "expiryDate": { "type": "string", "maxLength": 30 },
+        "issuingAuthority": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "tags": { "type": "array" },
+        "isAadhaar": { "type": "boolean" },
+        "verifiedByUser": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name", "category", "maskedNumber"]
+    },
+    "familyMembers": {
+      "title": "Family Member",
+      "description": "Family member profile for document grouping",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "relationship": {
+          "type": "string",
+          "enum": [
+            "Self",
+            "Wife",
+            "Husband",
+            "Daughter",
+            "Son",
+            "Father",
+            "Mother",
+            "Brother",
+            "Sister",
+            "Other"
+          ]
+        },
+        "dateOfBirth": { "type": "string", "maxLength": 30 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "color": { "type": "string", "maxLength": 50 },
+        "documentCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name", "relationship"]
+    },
+    "textNotes": {
+      "title": "Text Locker Note",
+      "description": "Encrypted secure note and confidential text",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 20000 },
+        "category": { "type": "string", "maxLength": 100 },
+        "familyMemberId": { "type": "string", "maxLength": 128 },
+        "familyMemberName": { "type": "string", "maxLength": 100 },
+        "tags": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "content"]
+    },
+    "notifications": {
+      "title": "Expiry & Document Notification",
+      "description": "User notification for expiring documents or security reminders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "date": { "type": "string", "maxLength": 30 },
+        "type": { "type": "string", "enum": ["EXPIRING_SOON", "EXPIRED", "INFO", "SECURITY"] },
+        "read": { "type": "boolean" },
+        "documentId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "message"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile document containing preference and security settings"
+    },
+    "/users/{userId}/documents/{documentId}": {
+      "schema": "documents",
+      "description": "User secure family documents with masked identifiers"
+    },
+    "/users/{userId}/familyMembers/{memberId}": {
+      "schema": "familyMembers",
+      "description": "Family members registered by user"
+    },
+    "/users/{userId}/textNotes/{noteId}": {
+      "schema": "textNotes",
+      "description": "Confidential text locker notes"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "notifications",
+      "description": "Expiry notifications and alerts"
+    }
+  }
+}

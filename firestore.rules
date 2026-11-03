@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User Profile Validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email'])
+        && data.uid is string && data.uid == request.auth.uid
+        && data.email is string && data.email.size() <= 150
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('pinLockEnabled' in data) || data.pinLockEnabled is bool)
+        && (!('pinHash' in data) || (data.pinHash is string && data.pinHash.size() <= 128))
+        && (!('theme' in data) || (data.theme in ['light', 'dark']));
+    }
+
+    // Document Validation
+    function isValidDocument(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'category', 'maskedNumber'])
+        && data.id is string && isValidId(data.id)
+        && data.userId is string && data.userId == userId && data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.category in ['Aadhaar', 'PAN', 'Passport', 'Driving Licence', 'Voter ID', 'Ration Card', 'Birth Certificate', 'Marriage Certificate', 'Education', 'Insurance', 'Bank', 'Property', 'Vehicle', 'Other']
+        && data.maskedNumber is string && data.maskedNumber.size() <= 100
+        && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 255))
+        && (!('fileSize' in data) || (data.fileSize is number && data.fileSize >= 0))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
+    }
+
+    // Family Member Validation
+    function isValidFamilyMember(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'relationship'])
+        && data.id is string && isValidId(data.id)
+        && data.userId is string && data.userId == userId && data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.relationship in ['Self', 'Wife', 'Husband', 'Daughter', 'Son', 'Father', 'Mother', 'Brother', 'Sister', 'Other']
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    // Text Note Validation
+    function isValidTextNote(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'content'])
+        && data.id is string && isValidId(data.id)
+        && data.userId is string && data.userId == userId && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 20000
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
+    }
+
+    // Notification Validation
+    function isValidNotification(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'message'])
+        && data.id is string && isValidId(data.id)
+        && data.userId is string && data.userId == userId && data.userId == request.auth.uid
+        && data.title is string && data.title.size() <= 200
+        && data.message is string && data.message.size() <= 1000
+        && (!('read' in data) || data.read is bool);
+    }
+
+    // Rules for Users collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming())
+        && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId);
+
+      // Subcollection: Documents
+      match /documents/{documentId} {
+        allow get: if isOwner(userId) && isValidId(documentId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(documentId) && isValidDocument(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(documentId) && isValidDocument(incoming(), userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(documentId);
+      }
+
+      // Subcollection: Family Members
+      match /familyMembers/{memberId} {
+        allow get: if isOwner(userId) && isValidId(memberId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(memberId) && isValidFamilyMember(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(memberId) && isValidFamilyMember(incoming(), userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(memberId);
+      }
+
+      // Subcollection: Text Notes
+      match /textNotes/{noteId} {
+        allow get: if isOwner(userId) && isValidId(noteId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(noteId) && isValidTextNote(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(noteId) && isValidTextNote(incoming(), userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(noteId);
+      }
+
+      // Subcollection: Notifications
+      match /notifications/{notificationId} {
+        allow get: if isOwner(userId) && isValidId(notificationId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(notificationId) && isValidNotification(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(notificationId) && isValidNotification(incoming(), userId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) && isValidId(notificationId);
+      }
+    }
+  }
+}

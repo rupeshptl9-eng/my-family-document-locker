@@ -1,0 +1,6 @@
+{
+  "name": "My Family Document Locker",
+  "description": "Mobile-first Android application to securely store, scan, organize, and manage family documents, text notes, expiry alerts, and AI intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
